@@ -1,0 +1,119 @@
+# Entornos virtuales
+venv/
+env/
+.env/
+.venv/
+*.venv
+*.env
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de distribución y compilación
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Logs
+*.log
+logs/
+log/
+.log/
+
+# Archivos de entorno y configuración local
+.env
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de pruebas y coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# Archivos de documentación
+docs/_build/
+docs/build/
+
+# Archivos de dependencias
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de desarrollo
+*.swp
+*.swo
+*~
+
+# Archivos de IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# Archivos de monitoreo y profiling
+.prof
+*.lprof
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de configuración de herramientas
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pylintrc
+.flake8
+
+# Archivos de dependencias específicas
+node_modules/
+.pnp/
+.pnp.js
+
+# Archivos de despliegue
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# Archivos de secretos
+*.pem
+*.key
+*.crt
+secrets/
+
+# Archivos de configuración de pre-commit
+.pre-commit-config.yaml.lock
+
+# Archivos específicos del proyecto Slack Bot
+slack_bot.db
+*.sqlite3

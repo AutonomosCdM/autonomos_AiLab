@@ -1,0 +1,26 @@
+requests==2.32.3
+websocket-client==1.8.0
+composio-core==0.7.7
+composio-openai==0.7.7
+slack-bolt==1.18.1
+groq==0.5.0
+pydantic==2.10.6
+python-dotenv==1.0.1
+structlog==24.1.0
+openai==1.66.3
+
+# AI and NLP
+transformers==4.41.2
+torch==2.3.0
+
+# Deployment and Infrastructure
+uvicorn==0.34.0
+fastapi==0.115.11
+
+# Logging and Monitoring
+sentry-sdk==2.22.0
+
+# Development and Testing
+pytest==8.2.1
+coverage==7.5.1
+mypy==1.10.0

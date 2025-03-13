@@ -1,0 +1,31 @@
+# Dependencias principales
+slack-bolt==1.18.1
+python-dotenv==1.0.0
+groq==0.3.0
+
+# Utilidades
+typing-extensions==4.9.0
+
+# Logging y debugging
+structlog==24.1.0
+
+# Desarrollo y pruebas
+pytest==7.4.4
+pytest-cov==4.1.0
+mypy==1.8.0
+black==24.2.0
+isort==5.13.2
+
+# Seguridad
+safety==3.0.1
+
+# Documentación
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+
+# Herramientas de CLI
+click==8.1.7
+argparse==1.4.0
+
+# Opcional: Monitoreo y métricas
+prometheus-client==0.19.0

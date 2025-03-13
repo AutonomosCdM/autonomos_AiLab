@@ -1,0 +1,20 @@
+[Unit]
+Description=Slack Bot with Composio MCP Integration
+After=network.target
+
+[Service]
+Type=simple
+User=autonomos_dev
+WorkingDirectory=/Users/autonomos_dev/Projects/slack_bot
+Environment=PYTHONPATH=/Users/autonomos_dev/Projects/slack_bot
+Environment=COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
+Environment=COMPOSIO_SLACK_INTEGRATION_TOKEN=${COMPOSIO_SLACK_INTEGRATION_TOKEN}
+Environment=SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+Environment=SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+Environment=GROQ_API_KEY=${GROQ_API_KEY}
+ExecStart=/Users/autonomos_dev/Projects/slack_bot/venv/bin/python3 -m slack_bot.app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,73 @@
+# Entorno Virtual
+venv/
+.venv/
+env/
+.env/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Archivos de entorno
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Archivos de IDE y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Archivos de pruebas y coverage
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Archivos de construcción y distribución
+build/
+dist/
+*.egg-info/
+
+# Archivos de configuración local
+*.local
+
+# Archivos de dependencias
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de documentación generados
+docs/_build/
+
+# Archivos de seguridad
+.safety-policy.yml
+
+# Archivos de monitoreo y métricas
+*.prof
+*.out
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de configuración de herramientas
+.mypy_cache/
+.pylintrc
+.flake8
+.isort.cfg
+
+# Archivos específicos del proyecto
+# Añade aquí cualquier archivo específico que quieras ignorar
