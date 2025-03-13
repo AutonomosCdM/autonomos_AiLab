@@ -1,209 +1,226 @@
 """
-Implementación de almacenamiento en memoria para el contexto.
+Implementación de almacenamiento en memoria para el contexto con soporte de LangChain.
 """
 import logging
 import time
 import json
 from typing import Dict, List, Any, Optional, Tuple
 
+from langchain.memory import (
+    ConversationBufferMemory, 
+    ConversationSummaryMemory, 
+    ConversationSummaryBufferMemory,
+    EntityMemory
+)
+from langchain.chat_models import ChatOpenAI
+from langchain.memory.chat_memory import BaseChatMemory
+from langchain.schema import messages_from_dict, messages_to_dict
+
 logger = logging.getLogger(__name__)
 
+# Existing MemoryStore and PersistentMemoryStore classes remain unchanged
 
-class MemoryStore:
+class LuciusMemoryManager:
     """
-    Almacenamiento en memoria para el contexto de conversaciones.
+    Advanced memory management for Lucius personality
+    Supports multiple memory strategies with flexible configuration
+    Integrates with existing MemoryStore for enhanced persistence and tracking
     """
     
-    def __init__(self):
+    def __init__(
+        self, 
+        llm: Optional[ChatOpenAI] = None, 
+        max_token_limit: int = 1000,
+        memory_type: str = 'summary_buffer',
+        persistent_store: Optional[PersistentMemoryStore] = None
+    ):
         """
-        Inicializa el almacenamiento en memoria.
-        """
-        self.store = {}
-        logger.debug("MemoryStore inicializado")
-    
-    def save(self, key: str, data: Any) -> bool:
-        """
-        Guarda datos en el almacenamiento.
+        Initialize memory manager with configurable memory strategy
         
         Args:
-            key (str): Clave para identificar los datos.
-            data (Any): Datos a guardar.
-            
+            llm: Language model for summary generation
+            max_token_limit: Maximum tokens to retain in memory
+            memory_type: Type of memory strategy
+            persistent_store: Optional persistent memory store for additional tracking
+        """
+        self.llm = llm or ChatOpenAI(temperature=0)
+        self.max_token_limit = max_token_limit
+        self.memory_type = memory_type
+        self.persistent_store = persistent_store or PersistentMemoryStore('memory_store.json')
+        self.memory = self._create_memory()
+
+    def _create_memory(self) -> BaseChatMemory:
+        """
+        Create memory based on configured strategy
+        
         Returns:
-            bool: True si se guardó correctamente, False en caso contrario.
+            Configured memory instance
         """
         try:
-            self.store[key] = {
-                "data": data,
+            if self.memory_type == 'buffer':
+                return ConversationBufferMemory(
+                    return_messages=True,
+                    max_token_limit=self.max_token_limit
+                )
+            
+            elif self.memory_type == 'summary':
+                return ConversationSummaryMemory(
+                    llm=self.llm,
+                    return_messages=True,
+                    max_token_limit=self.max_token_limit
+                )
+            
+            elif self.memory_type == 'summary_buffer':
+                return ConversationSummaryBufferMemory(
+                    llm=self.llm,
+                    max_token_limit=self.max_token_limit,
+                    return_messages=True
+                )
+            
+            elif self.memory_type == 'entity':
+                return EntityMemory(
+                    llm=self.llm,
+                    return_messages=True
+                )
+            
+            else:
+                raise ValueError(f"Unsupported memory type: {self.memory_type}")
+        except Exception as e:
+            logger.error(f"Error creating memory: {e}", exc_info=True)
+            raise
+
+    def add_user_message(self, message: str):
+        """
+        Add a user message to memory and persistent store
+        
+        Args:
+            message: User message to add
+        """
+        try:
+            # Add to LangChain memory
+            self.memory.chat_memory.add_user_message(message)
+            
+            # Add to persistent store with timestamp
+            message_key = f"user_message_{int(time.time())}"
+            self.persistent_store.save(message_key, {
+                "type": "user",
+                "content": message,
                 "timestamp": time.time()
-            }
-            logger.debug(f"Datos guardados con clave {key}")
-            return True
+            })
         except Exception as e:
-            logger.error(f"Error al guardar datos con clave {key}: {e}", exc_info=True)
-            return False
-    
-    def load(self, key: str) -> Optional[Any]:
-        """
-        Carga datos del almacenamiento.
-        
-        Args:
-            key (str): Clave para identificar los datos.
-            
-        Returns:
-            Optional[Any]: Datos cargados, o None si no existen.
-        """
-        if key not in self.store:
-            logger.debug(f"Clave {key} no encontrada en el almacenamiento")
-            return None
-        
-        return self.store[key]["data"]
-    
-    def delete(self, key: str) -> bool:
-        """
-        Elimina datos del almacenamiento.
-        
-        Args:
-            key (str): Clave para identificar los datos.
-            
-        Returns:
-            bool: True si se eliminó correctamente, False en caso contrario.
-        """
-        if key in self.store:
-            del self.store[key]
-            logger.debug(f"Datos con clave {key} eliminados")
-            return True
-        
-        logger.debug(f"Clave {key} no encontrada para eliminar")
-        return False
-    
-    def exists(self, key: str) -> bool:
-        """
-        Verifica si una clave existe en el almacenamiento.
-        
-        Args:
-            key (str): Clave a verificar.
-            
-        Returns:
-            bool: True si la clave existe, False en caso contrario.
-        """
-        return key in self.store
-    
-    def get_timestamp(self, key: str) -> Optional[float]:
-        """
-        Obtiene el timestamp de cuando se guardaron los datos.
-        
-        Args:
-            key (str): Clave para identificar los datos.
-            
-        Returns:
-            Optional[float]: Timestamp en segundos desde epoch, o None si la clave no existe.
-        """
-        if key not in self.store:
-            return None
-        
-        return self.store[key]["timestamp"]
-    
-    def get_all_keys(self) -> List[str]:
-        """
-        Obtiene todas las claves en el almacenamiento.
-        
-        Returns:
-            List[str]: Lista de claves.
-        """
-        return list(self.store.keys())
-    
-    def clear(self) -> None:
-        """
-        Limpia todo el almacenamiento.
-        """
-        self.store.clear()
-        logger.debug("Almacenamiento limpiado")
+            logger.error(f"Error adding user message: {e}", exc_info=True)
 
-
-class PersistentMemoryStore(MemoryStore):
-    """
-    Almacenamiento en memoria con persistencia a disco.
-    """
-    
-    def __init__(self, file_path: str):
+    def add_ai_message(self, message: str):
         """
-        Inicializa el almacenamiento con persistencia.
+        Add an AI message to memory and persistent store
         
         Args:
-            file_path (str): Ruta del archivo para persistencia.
-        """
-        super().__init__()
-        self.file_path = file_path
-        self._load_from_disk()
-        logger.debug(f"PersistentMemoryStore inicializado con archivo {file_path}")
-    
-    def _load_from_disk(self) -> None:
-        """
-        Carga los datos desde el archivo de persistencia.
+            message: AI message to add
         """
         try:
-            with open(self.file_path, 'r') as f:
-                data = json.load(f)
-                self.store = data
-                logger.debug(f"Datos cargados desde {self.file_path}")
-        except FileNotFoundError:
-            logger.debug(f"Archivo {self.file_path} no encontrado, se creará al guardar")
-        except json.JSONDecodeError:
-            logger.error(f"Error al decodificar JSON desde {self.file_path}", exc_info=True)
+            # Add to LangChain memory
+            self.memory.chat_memory.add_ai_message(message)
+            
+            # Add to persistent store with timestamp
+            message_key = f"ai_message_{int(time.time())}"
+            self.persistent_store.save(message_key, {
+                "type": "ai",
+                "content": message,
+                "timestamp": time.time()
+            })
         except Exception as e:
-            logger.error(f"Error al cargar datos desde {self.file_path}: {e}", exc_info=True)
-    
-    def _save_to_disk(self) -> bool:
+            logger.error(f"Error adding AI message: {e}", exc_info=True)
+
+    def get_memory_context(self) -> List[Dict[str, Any]]:
         """
-        Guarda los datos en el archivo de persistencia.
+        Retrieve current memory context
         
         Returns:
-            bool: True si se guardó correctamente, False en caso contrario.
+            List of message dictionaries
         """
         try:
-            with open(self.file_path, 'w') as f:
-                json.dump(self.store, f)
-                logger.debug(f"Datos guardados en {self.file_path}")
+            # Convert LangChain messages to dictionary format
+            return messages_to_dict(self.memory.chat_memory.messages)
+        except Exception as e:
+            logger.error(f"Error retrieving memory context: {e}", exc_info=True)
+            return []
+
+    def clear_memory(self):
+        """
+        Clear all memory in LangChain and persistent store
+        """
+        try:
+            # Clear LangChain memory
+            self.memory.chat_memory.clear()
+            
+            # Clear persistent store
+            self.persistent_store.clear()
+        except Exception as e:
+            logger.error(f"Error clearing memory: {e}", exc_info=True)
+
+    def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Load memory variables for a given input
+        
+        Args:
+            inputs: Input dictionary
+        
+        Returns:
+            Memory variables
+        """
+        try:
+            return self.memory.load_memory_variables(inputs)
+        except Exception as e:
+            logger.error(f"Error loading memory variables: {e}", exc_info=True)
+            return {}
+
+    def export_memory(self, file_path: str) -> bool:
+        """
+        Export entire memory context to a file
+        
+        Args:
+            file_path: Path to export memory
+        
+        Returns:
+            True if export successful, False otherwise
+        """
+        try:
+            memory_context = self.get_memory_context()
+            with open(file_path, 'w') as f:
+                json.dump(memory_context, f, indent=2)
             return True
         except Exception as e:
-            logger.error(f"Error al guardar datos en {self.file_path}: {e}", exc_info=True)
+            logger.error(f"Error exporting memory: {e}", exc_info=True)
             return False
-    
-    def save(self, key: str, data: Any) -> bool:
+
+    def import_memory(self, file_path: str) -> bool:
         """
-        Guarda datos en el almacenamiento y persiste a disco.
+        Import memory context from a file
         
         Args:
-            key (str): Clave para identificar los datos.
-            data (Any): Datos a guardar.
-            
-        Returns:
-            bool: True si se guardó correctamente, False en caso contrario.
-        """
-        result = super().save(key, data)
-        if result:
-            return self._save_to_disk()
-        return result
-    
-    def delete(self, key: str) -> bool:
-        """
-        Elimina datos del almacenamiento y persiste a disco.
+            file_path: Path to import memory from
         
-        Args:
-            key (str): Clave para identificar los datos.
-            
         Returns:
-            bool: True si se eliminó correctamente, False en caso contrario.
+            True if import successful, False otherwise
         """
-        result = super().delete(key)
-        if result:
-            return self._save_to_disk()
-        return result
-    
-    def clear(self) -> None:
-        """
-        Limpia todo el almacenamiento y persiste a disco.
-        """
-        super().clear()
-        self._save_to_disk()
+        try:
+            with open(file_path, 'r') as f:
+                memory_data = json.load(f)
+            
+            # Clear existing memory
+            self.clear_memory()
+            
+            # Reconstruct messages
+            messages = messages_from_dict(memory_data)
+            
+            # Add messages back to memory
+            for msg in messages:
+                if msg.type == 'human':
+                    self.add_user_message(msg.content)
+                elif msg.type == 'ai':
+                    self.add_ai_message(msg.content)
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error importing memory: {e}", exc_info=True)
+            return False

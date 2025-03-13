@@ -1,26 +1,50 @@
-requests==2.32.3
-websocket-client==1.8.0
-composio-core==0.7.7
-composio-openai==0.7.7
+# Dependencias principales
 slack-bolt==1.18.1
-groq==0.5.0
-pydantic==2.10.6
-python-dotenv==1.0.1
+python-dotenv==1.0.0
+groq==0.3.0
+
+# Gestión de contexto y personalidad
 structlog==24.1.0
-openai==1.66.3
 
-# AI and NLP
-transformers==4.41.2
-torch==2.3.0
+# Validación de datos
+pydantic==2.6.4
 
-# Deployment and Infrastructure
-uvicorn==0.34.0
-fastapi==0.115.11
+# Herramientas de CLI
+click==8.1.7
+argparse==1.4.0
 
-# Logging and Monitoring
-sentry-sdk==2.22.0
+# Logging y debugging
+structlog==24.1.0
 
-# Development and Testing
-pytest==8.2.1
-coverage==7.5.1
-mypy==1.10.0
+# Desarrollo y pruebas
+pytest==7.4.4
+pytest-cov==4.1.0
+mypy==1.8.0
+black==24.2.0
+isort==5.13.2
+flake8==7.0.0
+
+# Seguridad
+safety==3.0.1
+
+# Documentación
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+
+# Monitoreo y métricas
+prometheus-client==0.19.0
+
+# Herramientas de despliegue
+google-cloud-compute==1.16.1
+
+# Opcional: Soporte para más servicios
+openai==1.12.0  # Para comparación de modelos de IA
+boto3==1.34.28  # Integración con AWS
+azure-identity==1.15.0  # Integración con Azure
+
+# Herramientas de desarrollo adicionales
+pre-commit==3.6.2
+pylint==3.0.3
+
+# Manejo de dependencias
+pip-tools==7.4.1
