@@ -14,17 +14,23 @@ Implementación de estrategias de memoria modular y reutilizable para la persona
   * Integración con almacenamiento persistente
   * Funcionalidades genéricas de gestión de memoria
 
-- Características Clave:
-  * Registro dinámico de estrategias de memoria
-  * Configuración flexible de memoria
-  * Soporte para estrategias predeterminadas y personalizadas
-  * Gestión de memoria independiente de la personalidad
+### Cobertura de Pruebas
+- Pruebas exhaustivas implementadas para:
+  * Registro de estrategias de memoria
+  * Creación de gestores de memoria
+  * Manejo de mensajes
+  * Exportación e importación de memoria
+  * Persistencia de memoria
+  * Configuración de estrategias
+  * Gestión de variables de memoria
+  * Manejo de estrategias inválidas
 
 ## Estrategias de Memoria Soportadas
 - Buffer Memory: Almacenamiento directo de mensajes
 - Summary Memory: Condensación de conversaciones largas
 - Summary Buffer Memory: Combinación de resumen y buffer
 - Entity Memory: Seguimiento de entidades específicas
+- Soporte para estrategias personalizadas
 
 ## Próximos Pasos
 1. Desarrollar más estrategias de memoria personalizadas
@@ -33,6 +39,7 @@ Implementación de estrategias de memoria modular y reutilizable para la persona
 4. Añadir soporte para estrategias de memoria específicas de dominio
 
 ## Consideraciones
+- Pruebas cubren escenarios críticos de gestión de memoria
 - Modularidad permite fácil extensión y personalización
 - Registro centralizado facilita la gestión de estrategias
 - Diseño flexible para adaptarse a diferentes requisitos de memoria
