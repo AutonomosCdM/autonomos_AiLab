@@ -117,3 +117,4 @@ secrets/
 # Archivos específicos del proyecto Slack Bot
 slack_bot.db
 *.sqlite3
+memory-bank/
