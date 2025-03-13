@@ -1,31 +1,38 @@
 ## Enfoque Actual
-Implementación de estrategias de memoria avanzadas para la personalidad de Lucius utilizando componentes de memoria de LangChain.
+Implementación de estrategias de memoria modular y reutilizable para la personalidad de Lucius.
 
 ## Cambios Recientes
 ### Mejoras en Gestión de Memoria
-- Añadido soporte para múltiples estrategias de memoria:
-  * ConversationBufferMemory
-  * ConversationSummaryMemory
-  * ConversationSummaryBufferMemory
-  * EntityMemory
+- Introducción de `MemoryStrategyRegistry`:
+  * Registro centralizado de estrategias de memoria
+  * Permite registrar y gestionar estrategias personalizadas
+  * Soporte para múltiples tipos de memoria
 
-- Configuración de memoria personalizada en Lucius:
-  * Tipo de memoria predeterminado: summary_buffer
-  * Límite de tokens: 1000
-  * Almacenamiento persistente habilitado
+- Nuevo `BaseMemoryManager`:
+  * Diseñado para ser extensible y reutilizable
+  * Soporta diferentes estrategias de memoria
+  * Integración con almacenamiento persistente
+  * Funcionalidades genéricas de gestión de memoria
 
-- Nuevas funcionalidades:
-  * Exportación e importación de memoria
-  * Almacenamiento persistente con timestamps
-  * Gestión flexible de contexto de conversación
+- Características Clave:
+  * Registro dinámico de estrategias de memoria
+  * Configuración flexible de memoria
+  * Soporte para estrategias predeterminadas y personalizadas
+  * Gestión de memoria independiente de la personalidad
+
+## Estrategias de Memoria Soportadas
+- Buffer Memory: Almacenamiento directo de mensajes
+- Summary Memory: Condensación de conversaciones largas
+- Summary Buffer Memory: Combinación de resumen y buffer
+- Entity Memory: Seguimiento de entidades específicas
 
 ## Próximos Pasos
-1. Realizar pruebas exhaustivas de los diferentes tipos de memoria
-2. Evaluar el rendimiento y la eficiencia de cada estrategia
-3. Implementar mecanismos de rotación y limpieza de memoria
-4. Desarrollar interfaz de usuario para gestión de memoria
+1. Desarrollar más estrategias de memoria personalizadas
+2. Implementar mecanismos de optimización de memoria
+3. Crear interfaz de configuración de memoria más robusta
+4. Añadir soporte para estrategias de memoria específicas de dominio
 
 ## Consideraciones
-- La memoria summary_buffer permite un balance entre retención de contexto y eficiencia de tokens
-- El almacenamiento persistente garantiza la continuidad del contexto entre sesiones
-- Se requiere monitoreo continuo para optimizar el rendimiento de la memoria
+- Modularidad permite fácil extensión y personalización
+- Registro centralizado facilita la gestión de estrategias
+- Diseño flexible para adaptarse a diferentes requisitos de memoria

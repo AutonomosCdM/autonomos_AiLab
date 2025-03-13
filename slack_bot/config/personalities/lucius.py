@@ -3,7 +3,7 @@ Configuración de personalidad para Lucius Fox, genio tecnológico y asesor conf
 """
 
 from slack_bot.personality.templates import template_manager
-from slack_bot.context.memory import LuciusMemoryManager, PersistentMemoryStore
+from slack_bot.context.memory import BaseMemoryManager, MemoryStrategyRegistry
 from langchain.chat_models import ChatOpenAI
 
 # Registrar plantillas específicas de Lucius
@@ -124,7 +124,7 @@ def create_lucius_memory_manager():
     Crea un gestor de memoria para Lucius con configuración personalizada.
     
     Returns:
-        LuciusMemoryManager: Gestor de memoria configurado
+        BaseMemoryManager: Gestor de memoria configurado
     """
     # Configuración del modelo de lenguaje
     llm = ChatOpenAI(
@@ -133,15 +133,29 @@ def create_lucius_memory_manager():
         max_tokens=PERSONALITY_CONFIG['response_config']['max_tokens']
     )
     
-    # Crear almacenamiento persistente
-    persistent_store = PersistentMemoryStore('lucius_memory_store.json')
-    
     # Crear gestor de memoria con configuración de personalidad
-    memory_manager = LuciusMemoryManager(
+    memory_manager = BaseMemoryManager(
         llm=llm,
-        max_token_limit=PERSONALITY_CONFIG['memory_config']['max_token_limit'],
         memory_type=PERSONALITY_CONFIG['memory_config']['type'],
-        persistent_store=persistent_store
+        max_token_limit=PERSONALITY_CONFIG['memory_config']['max_token_limit']
     )
     
     return memory_manager
+
+# Registrar estrategia de memoria personalizada para Lucius si es necesario
+def register_lucius_memory_strategy():
+    """
+    Registra una estrategia de memoria específica para Lucius si se requiere.
+    """
+    # Ejemplo de cómo registrar una estrategia personalizada
+    MemoryStrategyRegistry.register_strategy(
+        'lucius_custom', 
+        ConversationSummaryBufferMemory,
+        lambda llm, max_token_limit=1000, **kwargs: {
+            'llm': llm,
+            'max_token_limit': max_token_limit,
+            'return_messages': True,
+            # Parámetros adicionales específicos de Lucius
+            'extra_config': 'lucius_specific_config'
+        }
+    )
