@@ -9,17 +9,17 @@ load_dotenv()
 # Initialize Slack app with bot token
 app = App(token=os.getenv('SLACK_BOT_TOKEN'))
 
-@app.event("app_mention")
+@app.event('app_mention')
 def handle_mention(event, say):
     """Basic handler for app mentions"""
     user = event.get('user', 'someone')
-    say(f"Hello <@{user}>! I'm Lucius, your AI assistant.")
+    say(f'Hello <@{user}>! I am Lucius your AI assistant.')
 
-@app.message("hello")
+@app.message('hello')
 def say_hello(message, say):
     """Respond to hello messages"""
     user = message.get('user', 'someone')
-    say(f"Hi there <@{user}>! How can I help you today?")
+    say(f'Hi there <@{user}>! How can I help you today?')
 
 def main():
     """Main function to start the Slack bot"""
@@ -27,5 +27,5 @@ def main():
     handler = SocketModeHandler(app, os.getenv('SLACK_APP_TOKEN'))
     handler.start()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

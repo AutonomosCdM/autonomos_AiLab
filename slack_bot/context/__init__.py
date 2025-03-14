@@ -6,7 +6,7 @@ Este módulo gestiona el historial de conversaciones, memoria y estado del conte
 
 # Importar clases de gestión de contexto
 from .manager import ContextManager
-from .memory import MemoryStore, PersistentMemoryStore
+from .memory import MemoryStore, PersistentMemoryStore, BaseMemoryManager
 from .history import ConversationHistory, ConversationHistoryManager
 
 # Lista de componentes de contexto disponibles
@@ -24,6 +24,7 @@ __all__ = [
     'ContextManager',
     'MemoryStore',
     'PersistentMemoryStore',
+    'BaseMemoryManager',
     'ConversationHistory',
     'ConversationHistoryManager'
 ]

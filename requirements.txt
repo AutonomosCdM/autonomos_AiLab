@@ -7,7 +7,7 @@ groq==0.3.0
 structlog==24.1.0
 
 # Validación de datos
-pydantic==2.6.4
+pydantic==1.10.12  # Downgraded to resolve safety package conflict
 
 # Herramientas de CLI
 click==8.1.7

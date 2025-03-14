@@ -1,0 +1,12 @@
+{
+  "user_message_1741956993": {
+    "type": "human",
+    "content": "What's the weather like?",
+    "timestamp": 1741956993.128979
+  },
+  "ai_message_1741956993": {
+    "type": "ai",
+    "content": "I'm sorry, I don't have real-time weather information.",
+    "timestamp": 1741956993.1290581
+  }
+}

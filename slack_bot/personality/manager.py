@@ -51,14 +51,22 @@ class PersonalityManager:
             module_path = f"slack_bot.config.personalities.{personality_name}"
             personality_module = importlib.import_module(module_path)
             
-            # Crear diccionario de configuración
-            personality_config = {
-                "name": personality_name,
-                "system_prompt": getattr(personality_module, "SYSTEM_PROMPT", ""),
-                "response_config": getattr(personality_module, "RESPONSE_CONFIG", {}),
-                "behavior_config": getattr(personality_module, "BEHAVIOR_CONFIG", {}),
-                "templates": getattr(personality_module, "TEMPLATES", {})
-            }
+            # Verificar si existe PERSONALITY_CONFIG
+            if hasattr(personality_module, "PERSONALITY_CONFIG"):
+                # Usar PERSONALITY_CONFIG
+                personality_config = personality_module.PERSONALITY_CONFIG
+                # Asegurarse de que tenga todos los campos necesarios
+                if "name" not in personality_config:
+                    personality_config["name"] = personality_name
+            else:
+                # Crear diccionario de configuración desde variables individuales
+                personality_config = {
+                    "name": personality_name,
+                    "system_prompt": getattr(personality_module, "SYSTEM_PROMPT", ""),
+                    "response_config": getattr(personality_module, "RESPONSE_CONFIG", {}),
+                    "behavior_config": getattr(personality_module, "BEHAVIOR_CONFIG", {}),
+                    "templates": getattr(personality_module, "TEMPLATES", {})
+                }
             
             # Almacenar configuración
             self.personalities[personality_name] = personality_config
@@ -107,7 +115,7 @@ class PersonalityManager:
                 logger.warning(f"Personalidad {personality} no encontrada, usando la activa")
                 personality = self.active_personality
         
-        return self.personalities[personality]["system_prompt"]
+        return self.personalities[personality].get("system_prompt", "")
     
     def get_response_config(self, personality_name: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -127,7 +135,7 @@ class PersonalityManager:
                 logger.warning(f"Personalidad {personality} no encontrada, usando la activa")
                 personality = self.active_personality
         
-        return self.personalities[personality]["response_config"]
+        return self.personalities[personality].get("response_config", {})
     
     def get_behavior_config(self, personality_name: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -147,7 +155,7 @@ class PersonalityManager:
                 logger.warning(f"Personalidad {personality} no encontrada, usando la activa")
                 personality = self.active_personality
         
-        return self.personalities[personality]["behavior_config"]
+        return self.personalities[personality].get("behavior_config", {})
     
     def get_template(self, template_name: str, personality_name: Optional[str] = None) -> str:
         """
@@ -168,8 +176,13 @@ class PersonalityManager:
                 logger.warning(f"Personalidad {personality} no encontrada, usando la activa")
                 personality = self.active_personality
         
-        templates = self.personalities[personality]["templates"]
-        return templates.get(template_name, "")
+        templates = self.personalities[personality].get("templates", {})
+        template = templates.get(template_name, "")
+        
+        if not template:
+            logger.warning(f"Plantilla '{template_name}' no encontrada para personalidad '{personality}'")
+        
+        return template
     
     def get_available_personalities(self) -> list:
         """

@@ -1,0 +1,30 @@
+cloud_provider: google_compute_engine
+instance_type: e2-micro
+region: southamerica-west1-c
+security_groups:
+  - http-server
+  - https-server
+
+deployment_settings:
+  python_version: 3.9
+  virtual_env: true
+  dependencies_file: requirements.txt
+
+monitoring:
+  enabled: true
+  log_file: deployment.log
+  log_level: INFO
+
+scaling:
+  min_instances: 1
+  max_instances: 3
+  auto_scaling: false
+
+network:
+  vpc: default
+  subnet: default
+  firewall_rules:
+    - name: allow-http
+      ports: [80]
+    - name: allow-https
+      ports: [443]

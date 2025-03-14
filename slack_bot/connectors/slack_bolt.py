@@ -2,6 +2,9 @@
 Implementación del conector de Slack utilizando Slack Bolt.
 """
 import logging
+import re
+import os
+import groq
 from typing import Dict, Any, Callable, Optional
 
 from slack_bolt import App
@@ -168,6 +171,10 @@ class DefaultEventHandler(EventHandler):
         self.connector = connector
         self.personality_manager = personality_manager
         self.context_manager = context_manager
+        
+        # Inicializar cliente de Groq
+        self.groq_client = groq.Client(api_key=settings.GROQ_API_KEY)
+        
         logger.debug("DefaultEventHandler inicializado")
     
     def handle_message(self, message: Dict[str, Any]) -> Optional[str]:
@@ -194,30 +201,130 @@ class DefaultEventHandler(EventHandler):
         
         logger.info(f"Procesando mensaje: '{text}' de usuario {user_id} en canal {channel_id}")
         
-        # Aquí se procesaría el mensaje con las capas de personalidad y contexto
-        # Por ahora, devolvemos un mensaje simple
-        return f"Recibí tu mensaje: '{text}'"
+        # Generar respuesta usando la personalidad
+        try:
+            # Obtener plantilla de respuesta genérica
+            response_template = self.personality_manager.get_template("technical_explanation")
+            
+            # Formatear la respuesta con el contexto del mensaje
+            response = response_template.format(mensaje=text)
+            
+            # Enviar respuesta al canal
+            self.connector.send_message(channel=channel_id, text=response)
+            
+            return response
+        except Exception as e:
+            logger.error(f"Error al generar respuesta de personalidad: {e}", exc_info=True)
+            return f"Recibí tu mensaje: '{text}'"
     
-    def handle_mention(self, mention: Dict[str, Any]) -> Optional[str]:
+    def handle_mention(self, body: Dict[str, Any]) -> Optional[str]:
         """
         Maneja un evento de mención.
         
         Args:
-            mention (Dict[str, Any]): Datos de la mención.
+            body (Dict[str, Any]): Datos del evento de mención.
             
         Returns:
             Optional[str]: Respuesta a la mención, si corresponde.
         """
-        logger.info(f"Mención recibida: {mention}")
+        logger.info(f"Evento de mención recibido: {body}")
         
-        # Extraer texto de la mención (eliminar la parte de la mención al bot)
-        full_text = mention.get("text", "")
-        text = full_text.split(">", 1)[1].strip() if ">" in full_text else full_text
-        user_id = mention.get("user")
-        channel_id = mention.get("channel")
+        # Verificar si el evento tiene la estructura esperada
+        if not body or 'event' not in body:
+            logger.warning("Evento de mención no válido")
+            return "Lo siento, no pude procesar tu mensaje correctamente."
         
-        logger.info(f"Procesando mención: '{text}' de usuario {user_id} en canal {channel_id}")
+        # Extraer datos del evento
+        event = body['event']
+        text = event.get("text", "")
+        user_id = event.get("user")
+        channel_id = event.get("channel")
         
-        # Aquí se procesaría la mención con las capas de personalidad y contexto
-        # Por ahora, devolvemos un mensaje simple
-        return f"Gracias por mencionarme. Recibí tu mensaje: '{text}'"
+        # Eliminar la mención del bot del texto
+        bot_mention_pattern = r'<@[A-Z0-9]+>'
+        text_without_mention = re.sub(bot_mention_pattern, '', text).strip()
+        
+        logger.info(f"Procesando mención: '{text_without_mention}' de usuario {user_id} en canal {channel_id}")
+        
+        # Generar respuesta usando Groq LLM
+        try:
+            # Obtener historial de conversación
+            conversation_history = []
+            if self.context_manager:
+                conversation_history, _ = self.context_manager.get_formatted_history(user_id, channel_id)
+            
+            # Definir el prompt del sistema para Lucius
+            system_prompt = """
+            Eres Lucius Fox, un genio tecnológico y asesor confiable.
+
+            Tus objetivos son:
+            1. Proporcionar soluciones innovadoras y prácticas
+            2. Ofrecer asesoramiento honesto y directo, incluso cuando no es lo que quieren oír
+            3. Mantener un equilibrio entre brillantez técnica y accesibilidad
+            4. Preservar la ética profesional en todas las interacciones, aunque tu humor y sarcasmo te hace adorable
+
+            Características clave:
+            - Extraordinariamente inteligente
+            - Honesto y directo, con integridad inquebrantable
+            - Easygoing pero firme en sus convicciones
+            - Diligente y dedicado en cada proyecto
+            - Perspicaz, capaz de ver más allá de lo obvio
+            - Ingenioso con un humor sutil e inteligente, incluso sarcastico en el momento preciso, no siempre
+
+            Estilo de comunicación:
+            - Explicaciones técnicas precisas pero accesibles
+            - Comentarios ocasionales con humor seco e inteligente
+            - Respuestas tranquilas incluso en situaciones de presión
+            - Prefiere mostrar en lugar de sólo decir
+            """
+            
+            # Crear mensajes para la API de Groq
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            
+            # Añadir historial de conversación si existe
+            if conversation_history:
+                messages.extend(conversation_history)
+            
+            # Añadir el mensaje actual del usuario
+            messages.append({"role": "user", "content": text_without_mention})
+            
+            # Llamar a la API de Groq
+            logger.info(f"Enviando solicitud a Groq con {len(messages)} mensajes")
+            completion = self.groq_client.chat.completions.create(
+                model=settings.GROQ_MODEL,
+                messages=messages,
+                max_tokens=settings.GROQ_MAX_TOKENS,
+                temperature=0.7,
+            )
+            
+            # Extraer la respuesta
+            response = completion.choices[0].message.content
+            
+            # Guardar la conversación en el contexto
+            if self.context_manager:
+                self.context_manager.add_message(user_id, channel_id, text_without_mention, is_bot=False)
+                self.context_manager.add_message(user_id, channel_id, response, is_bot=True)
+            
+            # Enviar respuesta al canal
+            self.connector.send_message(
+                channel=channel_id, 
+                text=response,
+                # Añadir un thread_ts para hilar la conversación
+                thread_ts=event.get('ts')
+            )
+            
+            return response
+        except Exception as e:
+            logger.error(f"Error al generar respuesta con Groq: {e}", exc_info=True)
+            # Respuesta de fallback en caso de error
+            fallback_response = f"Parece que hay un problema técnico en mi sistema. Estoy trabajando para resolverlo lo antes posible. Tu consulta sobre '{text_without_mention}' es importante y la atenderé en cuanto solucione este inconveniente."
+            
+            self.connector.send_message(
+                channel=channel_id,
+                text=fallback_response,
+                thread_ts=event.get('ts')
+            )
+            
+            return fallback_response

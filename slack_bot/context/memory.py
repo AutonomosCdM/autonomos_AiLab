@@ -4,19 +4,40 @@ Implementación de almacenamiento en memoria modular y reutilizable.
 import logging
 import time
 import json
+import abc
 from typing import Dict, List, Any, Optional, Type, Callable
 
-from langchain.memory import (
-    ConversationBufferMemory, 
-    ConversationSummaryMemory, 
-    ConversationSummaryBufferMemory,
-    EntityMemory
-)
-from langchain.chat_models import ChatOpenAI
-from langchain.memory.chat_memory import BaseChatMemory
-from langchain.schema import messages_from_dict, messages_to_dict
-
 logger = logging.getLogger(__name__)
+
+class MemoryStore(abc.ABC):
+    """
+    Clase base abstracta para almacenamiento de memoria
+    Define la interfaz para diferentes estrategias de almacenamiento de memoria
+    """
+    @abc.abstractmethod
+    def save(self, key: str, value: Any):
+        """Guarda un valor con una clave específica"""
+        pass
+
+    @abc.abstractmethod
+    def load(self, key: str) -> Any:
+        """Carga un valor por su clave"""
+        pass
+
+    @abc.abstractmethod
+    def exists(self, key: str) -> bool:
+        """Verifica si una clave existe"""
+        pass
+
+    @abc.abstractmethod
+    def get_all_keys(self) -> List[str]:
+        """Obtiene todas las claves almacenadas"""
+        pass
+
+    @abc.abstractmethod
+    def clear(self):
+        """Limpia todos los datos almacenados"""
+        pass
 
 class MemoryStrategyRegistry:
     """
@@ -29,7 +50,7 @@ class MemoryStrategyRegistry:
     def register_strategy(
         cls, 
         name: str, 
-        memory_class: Type[BaseChatMemory], 
+        memory_class: Optional[Type] = None, 
         config_handler: Optional[Callable] = None
     ):
         """
@@ -37,12 +58,12 @@ class MemoryStrategyRegistry:
         
         Args:
             name: Nombre único de la estrategia
-            memory_class: Clase de memoria de LangChain
+            memory_class: Clase de memoria (opcional)
             config_handler: Función opcional para manejar configuraciones personalizadas
         """
         cls._strategies[name] = {
             'class': memory_class,
-            'config_handler': config_handler or (lambda llm, **kwargs: {})
+            'config_handler': config_handler or (lambda **kwargs: {})
         }
 
     @classmethod
@@ -61,43 +82,112 @@ class MemoryStrategyRegistry:
         return cls._strategies[name]
 
 # Registrar estrategias de memoria predeterminadas
-MemoryStrategyRegistry.register_strategy(
-    'buffer', 
-    ConversationBufferMemory,
-    lambda llm, max_token_limit=1000, **kwargs: {
-        'return_messages': True,
-        'max_token_limit': max_token_limit
-    }
-)
+MemoryStrategyRegistry.register_strategy('buffer')
+MemoryStrategyRegistry.register_strategy('summary')
+MemoryStrategyRegistry.register_strategy('summary_buffer')
 
-MemoryStrategyRegistry.register_strategy(
-    'summary', 
-    ConversationSummaryMemory,
-    lambda llm, max_token_limit=1000, **kwargs: {
-        'llm': llm,
-        'return_messages': True,
-        'max_token_limit': max_token_limit
-    }
-)
+class PersistentMemoryStore(MemoryStore):
+    """
+    Almacenamiento persistente para memoria
+    """
+    def __init__(self, file_path: str = 'memory_store.json'):
+        """
+        Inicializa el almacenamiento persistente
+        
+        Args:
+            file_path: Ruta del archivo para almacenar la memoria
+        """
+        self.file_path = file_path
+        self._data: Dict[str, Any] = self._load()
 
-MemoryStrategyRegistry.register_strategy(
-    'summary_buffer', 
-    ConversationSummaryBufferMemory,
-    lambda llm, max_token_limit=1000, **kwargs: {
-        'llm': llm,
-        'max_token_limit': max_token_limit,
-        'return_messages': True
-    }
-)
+    def _load(self) -> Dict[str, Any]:
+        """
+        Carga los datos desde el archivo
+        
+        Returns:
+            Diccionario de datos de memoria
+        """
+        try:
+            with open(self.file_path, 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
 
-MemoryStrategyRegistry.register_strategy(
-    'entity', 
-    EntityMemory,
-    lambda llm, **kwargs: {
-        'llm': llm,
-        'return_messages': True
-    }
-)
+    def _save(self):
+        """
+        Guarda los datos en el archivo
+        """
+        with open(self.file_path, 'w') as f:
+            json.dump(self._data, f, indent=2)
+
+    def save(self, key: str, value: Any):
+        """
+        Guarda un valor con una clave específica
+        
+        Args:
+            key: Clave para almacenar el valor
+            value: Valor a almacenar
+        """
+        self._data[key] = value
+        self._save()
+
+    def load(self, key: str) -> Any:
+        """
+        Carga un valor por su clave
+        
+        Args:
+            key: Clave para cargar el valor
+        
+        Returns:
+            Valor almacenado
+        """
+        return self._data.get(key)
+
+    def exists(self, key: str) -> bool:
+        """
+        Verifica si una clave existe
+        
+        Args:
+            key: Clave a verificar
+        
+        Returns:
+            True si la clave existe, False en caso contrario
+        """
+        return key in self._data
+
+    def get_all_keys(self) -> List[str]:
+        """
+        Obtiene todas las claves almacenadas
+        
+        Returns:
+            Lista de claves
+        """
+        return list(self._data.keys())
+
+    def clear(self):
+        """
+        Limpia todos los datos almacenados
+        """
+        self._data.clear()
+        self._save()
+
+def messages_from_dict(message_dicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Convierte una lista de diccionarios de mensajes a un formato estándar
+    
+    Args:
+        message_dicts: Lista de diccionarios de mensajes
+    
+    Returns:
+        Lista de mensajes normalizados
+    """
+    return [
+        {
+            'type': msg.get('type', 'unknown'),
+            'content': msg.get('content', ''),
+            'timestamp': msg.get('timestamp', time.time())
+        } for msg in message_dicts
+    ]
 
 class BaseMemoryManager:
     """
@@ -107,42 +197,37 @@ class BaseMemoryManager:
     
     def __init__(
         self, 
-        llm: Optional[ChatOpenAI] = None, 
         memory_type: str = 'summary_buffer',
         max_token_limit: int = 1000,
-        persistent_store: Optional['PersistentMemoryStore'] = None,
+        persistent_store: Optional[PersistentMemoryStore] = None,
         **strategy_kwargs
     ):
         """
         Inicializa el gestor de memoria con estrategia configurable
         
         Args:
-            llm: Modelo de lenguaje para generación de resúmenes
             memory_type: Tipo de estrategia de memoria
             max_token_limit: Límite máximo de tokens
             persistent_store: Almacenamiento persistente opcional
             strategy_kwargs: Argumentos adicionales para la estrategia de memoria
         """
-        self.llm = llm or ChatOpenAI(temperature=0)
         self.memory_type = memory_type
         self.max_token_limit = max_token_limit
         
         # Usar almacenamiento persistente predeterminado si no se proporciona
-        from .memory import PersistentMemoryStore  # Importación local para evitar circularidad
         self.persistent_store = persistent_store or PersistentMemoryStore('memory_store.json')
         
         # Obtener estrategia de memoria
         strategy = MemoryStrategyRegistry.get_strategy(memory_type)
         
         # Configurar parámetros de memoria
-        memory_config = strategy['config_handler'](
-            self.llm, 
+        self.memory_config = strategy['config_handler'](
             max_token_limit=self.max_token_limit,
             **strategy_kwargs
         )
         
-        # Crear instancia de memoria
-        self.memory = strategy['class'](**memory_config)
+        # Inicializar almacenamiento de mensajes
+        self._messages: List[Dict[str, Any]] = []
 
     def add_user_message(self, message: str):
         """
@@ -152,15 +237,16 @@ class BaseMemoryManager:
             message: Mensaje de usuario
         """
         try:
-            self.memory.chat_memory.add_user_message(message)
+            message_entry = {
+                "type": "human",
+                "content": message,
+                "timestamp": time.time()
+            }
+            self._messages.append(message_entry)
             
             # Almacenar en memoria persistente
             message_key = f"user_message_{int(time.time())}"
-            self.persistent_store.save(message_key, {
-                "type": "user",
-                "content": message,
-                "timestamp": time.time()
-            })
+            self.persistent_store.save(message_key, message_entry)
         except Exception as e:
             logger.error(f"Error añadiendo mensaje de usuario: {e}", exc_info=True)
 
@@ -172,15 +258,16 @@ class BaseMemoryManager:
             message: Mensaje de IA
         """
         try:
-            self.memory.chat_memory.add_ai_message(message)
-            
-            # Almacenar en memoria persistente
-            message_key = f"ai_message_{int(time.time())}"
-            self.persistent_store.save(message_key, {
+            message_entry = {
                 "type": "ai",
                 "content": message,
                 "timestamp": time.time()
-            })
+            }
+            self._messages.append(message_entry)
+            
+            # Almacenar en memoria persistente
+            message_key = f"ai_message_{int(time.time())}"
+            self.persistent_store.save(message_key, message_entry)
         except Exception as e:
             logger.error(f"Error añadiendo mensaje de IA: {e}", exc_info=True)
 
@@ -192,7 +279,7 @@ class BaseMemoryManager:
             Lista de diccionarios de mensajes
         """
         try:
-            return messages_to_dict(self.memory.chat_memory.messages)
+            return self._messages
         except Exception as e:
             logger.error(f"Error recuperando contexto de memoria: {e}", exc_info=True)
             return []
@@ -202,7 +289,7 @@ class BaseMemoryManager:
         Limpia toda la memoria
         """
         try:
-            self.memory.chat_memory.clear()
+            self._messages.clear()
             self.persistent_store.clear()
         except Exception as e:
             logger.error(f"Error limpiando memoria: {e}", exc_info=True)
@@ -218,7 +305,7 @@ class BaseMemoryManager:
             Variables de memoria
         """
         try:
-            return self.memory.load_memory_variables(inputs)
+            return {"history": "\n".join([f"{msg['type']}: {msg['content']}" for msg in self._messages])}
         except Exception as e:
             logger.error(f"Error cargando variables de memoria: {e}", exc_info=True)
             return {}
@@ -264,10 +351,10 @@ class BaseMemoryManager:
             
             # Añadir mensajes de vuelta a la memoria
             for msg in messages:
-                if msg.type == 'human':
-                    self.add_user_message(msg.content)
-                elif msg.type == 'ai':
-                    self.add_ai_message(msg.content)
+                if msg['type'] == 'human':
+                    self.add_user_message(msg['content'])
+                elif msg['type'] == 'ai':
+                    self.add_ai_message(msg['content'])
             
             return True
         except Exception as e:

@@ -15,7 +15,7 @@ SLACK_CHANNEL = os.getenv('SLACK_CHANNEL', '')
 # Configuraciones de Groq
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama3-70b-8192')
-GROQ_MAX_TOKENS = int(os.getenv('GROQ_MAX_TOKENS', 500))
+GROQ_MAX_TOKENS = int(os.getenv('GROQ_MAX_TOKENS', '500'))
 
 # Configuraciones de logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
@@ -26,13 +26,13 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEFAULT_PERSONALITY = os.getenv('DEFAULT_PERSONALITY', 'default')
 
 # Configuraciones de contexto
-MAX_CONTEXT_MESSAGES = int(os.getenv('MAX_CONTEXT_MESSAGES', 10))
-CONTEXT_EXPIRY_MINUTES = int(os.getenv('CONTEXT_EXPIRY_MINUTES', 60))
+MAX_CONTEXT_MESSAGES = int(os.getenv('MAX_CONTEXT_MESSAGES', '10'))
+CONTEXT_EXPIRY_MINUTES = int(os.getenv('CONTEXT_EXPIRY_MINUTES', '60'))
 
 # Configuraciones de seguridad
 TOKEN_VALIDATION = os.getenv('TOKEN_VALIDATION', 'true').lower() == 'true'
 RATE_LIMITING_ENABLED = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
-MAX_REQUESTS_PER_MINUTE = int(os.getenv('MAX_REQUESTS_PER_MINUTE', 30))
+MAX_REQUESTS_PER_MINUTE = int(os.getenv('MAX_REQUESTS_PER_MINUTE', '30'))
 
 # Configuraciones de despliegue
 DEPLOYMENT_PLATFORM = os.getenv('DEPLOYMENT_PLATFORM', 'google_compute_engine')

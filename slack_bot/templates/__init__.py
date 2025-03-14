@@ -10,8 +10,8 @@ from . import config_templates
 
 # Lista de plantillas disponibles
 AVAILABLE_TEMPLATES = {
-    "bot_templates": list(bot_templates.bot_templates.__dict__.keys()),
-    "config_templates": list(config_templates.config_templates.__dict__.keys())
+    "bot_templates": list(bot_templates.bot_templates.keys()),
+    "config_templates": list(config_templates.config_templates.keys())
 }
 
 # Versión del paquete de plantillas
